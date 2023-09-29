@@ -1,23 +1,27 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Dimensions } from 'react-native';
 
-const Rocket = () => {
+const Rocket = React.forwardRef(({rocketBottom, rocketLeft}, ref) => {
+    const rocketHeight = 64
+    const rocketWidth = 64
+
     return (
-        <View style={styles.rocketStyle}>
+        <View 
+        ref={ref}
+        style={{
+            display: 'inline-block',
+            backgroundColor: 'red',
+            height: rocketHeight,
+            width: rocketWidth,
+            position: 'absolute',
+            bottom: rocketBottom,
+            left: rocketLeft - (rocketHeight/2),
+            transition: 'all .2 ease',
+        }}>
 
         </View>
     )
-}
-
-const styles = StyleSheet.create({
-    rocketStyle:{
-        position: 'relative',
-        display: 'inline-block',
-        backgroundColor: 'red',
-        height: '4rem',
-        width: '4rem'
-    },
-
 })
+
 
 export default Rocket

@@ -1,34 +1,38 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Dimensions, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Dimensions, Pressable, Animated } from 'react-native';
 import Rocket from './components/Rocket';
 import Obstacles from './components/Obstacles';
 
 // Random number generator for bottom CSS value
- function generateRandomBottoms(amount, max){
-   let arr = [];
-   for (let i = 0; i < amount; i++){
-     arr.push(Math.floor(Math.random() * (max - 1 + 1)) + 1)
-   }
-   return arr;
- }
+function generateRandomBottoms(amount, start, max) {
+  let arr = [];
+  for (let i = 0; i < amount; i++) {
+    arr.push(Math.floor(Math.random() * (max - start + 1)) + start)
+  }
+  return arr;
+}
 
 
 export default function App() {
   const gravity = 3;
-  
+
   const screenWidth = Dimensions.get("screen").width;
   const screenHeight = Dimensions.get("screen").height;
   const rocketLeft = screenWidth / 2;
-  const [rocketBottom, setRocketBottom] = useState(screenHeight / 2)
+  const [rocketBottom, setRocketBottom] = useState(screenHeight / 2);
+
+  // Random bottom animation state
+  const [randomBottom] = useState(new Animated.Value(0));
 
   // Obstacle data
-  const [obstacleData, setObstacleData] = useState(generateRandomBottoms(5, screenHeight));
+  const [obstacleData, setObstacleData] = useState(generateRandomBottoms(5, 1, screenWidth/2));
+  
   const obstacleComponentRefs = obstacleData.map(() => useRef(null));
 
   // Invincibility
   const [invincible, setInvincible] = useState(true);
- 
+
   // Game Over states
   const [isGameOver, setIsGameOver] = useState(false);
 
@@ -43,14 +47,14 @@ export default function App() {
   let obstaclesLeftTimerId;
   let obstaclesLeftTimerId2;
 
-
   // Rocket falling
   useEffect(() => {
+    let timer = 30;
     if (rocketBottom > 0) {
       fallingRocketTimer = setInterval(() => {
         setRocketBottom(rocketBottom => rocketBottom - gravity)
 
-      }, 200)
+      }, 30)
 
       return () => {
         clearInterval(fallingRocketTimer)
@@ -59,18 +63,17 @@ export default function App() {
 
   }, [rocketBottom]);
 
-
   /**
    * Get many obstacles
   */
- 
+
 
   let amount = 5;
   let obstacleAmountTimer;
-  
+
 
   // Increase obstacle amount every 30s
-  
+
 
   // Obstacles
 
@@ -85,10 +88,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (obstaclesLeft <= -obstacleWidth) {
+    if (obstaclesLeft + obstacleData[obstacleData.length-1] <= -obstacleWidth) {
       // Reset obstaclesLeft and generate new obstacleData
+      console.log(obstacleData)
       setObstaclesLeft(screenWidth);
-      setObstacleData(generateRandomBottoms(5, screenHeight));
+      setObstacleData(generateRandomBottoms(5, 1, screenHeight));
     }
   }, [obstaclesLeft]);
 
@@ -122,6 +126,7 @@ export default function App() {
     return () => clearInterval(updateTimeInterval);
   }, [startTime]);
 
+
   // Fly function
   let flyDistance;
   const intervalRef = useRef(null);
@@ -135,8 +140,8 @@ export default function App() {
   const longFly = () => {
     if (!isGameOver) {
       intervalRef.current = setInterval(() => {
-        setRocketBottom(rocketBottom => rocketBottom + 30)
-      }, 100);
+        setRocketBottom(rocketBottom => rocketBottom + 30);
+      }, 30);
     }
   }
   const stopFlying = () => {
@@ -156,48 +161,49 @@ export default function App() {
   }
 
   const rocketRef = useRef(null);
-  const asteroidRef = useRef(null);
   const [collision, setCollision] = useState(false);
 
-  const [rocketRect, setRocketRect] = useState(null);
-  const [asteroidRect, setAsteroidRect] = useState(null);
-
   useEffect(() => {
-    if (rocketRef.current && asteroidRef.current) {
+    if (rocketRef.current) {
       rocketRef.current.measure((fx1, fy1, width1, height1, px1, py1) => {
-        asteroidRef.current.measure((fx2, fy2, width2, height2, px2, py2) => {
-          const rect1 = {
-            x: px1,
-            y: py1,
-            width: width1,
-            height: height1,
-          };
-          const rect2 = {
-            x: px2,
-            y: py2,
-            width: width2,
-            height: height2,
-          };
-
-          // Check for collision
-          const collisionDetected = isColliding(rect1, rect2);
-          setCollision(collisionDetected);
-        });
+        for (const obstacleRef of obstacleComponentRefs) {
+          if (obstacleRef.current) {
+            obstacleRef.current.measure(
+              (fx2, fy2, width2, height2, px2, py2) => {
+                const rect1 = {
+                  x: px1,
+                  y: py1,
+                  width: width1,
+                  height: height1,
+                };
+                const rect2 = {
+                  x: px2,
+                  y: py2,
+                  width: width2,
+                  height: height2,
+                };
+  
+                // Check for collision
+                const collisionDetected = isColliding(rect1, rect2);
+  
+                if (collisionDetected) {
+                  setCollision(true);
+                  gameOver();
+                  return; // Exit the loop once a collision is detected
+                }
+              }
+            );
+          }
+        }
       });
     }
-
-    // Stop the game once you hit something
-    if (collision) {
-      gameOver();
-    }
-  });
-
+  }, [rocketRef, obstacleComponentRefs]);
 
 
   const gameOver = () => {
     clearInterval(fallingRocketTimer);
     clearInterval(obstaclesLeftTimerId);
-    clearInterval(obstaclesLeftTimerId2);
+    
     clearInterval(flyDistance);
     setIsGameOver(true);
   }
@@ -207,32 +213,32 @@ export default function App() {
       <Text
         style={{
           position: 'absolute',
-          top:'0',
+          top: '0',
           left: '0',
           zIndex: '3'
         }}
-        >Total Distance: {distance} meters</Text>
-    <Pressable onTouchStart={startGame} onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
-      <View style={styles.container}>
-        <Rocket
-          ref={rocketRef}
-          rocketBottom={rocketBottom}
-          rocketLeft={rocketLeft}
-        />
-        {obstacleData.map((item, index) => (
-        <Obstacles
-          key={index}
-          ref={obstacleComponentRefs[index]}
-          obstacleWidth={obstacleWidth}
-          obstacleHeight={obstacleHeight}
-          obstaclesLeft={obstaclesLeft}
-          gap={gap}
-          color={'blue'}
-          randomBottom={item}
+      >Total Distance: {distance} meters</Text>
+      <Pressable onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
+        <View style={styles.container}>
+          <Rocket
+            ref={rocketRef}
+            rocketBottom={rocketBottom}
+            rocketLeft={rocketLeft}
           />
-        ))}
-      </View>
-    </Pressable>
+          {obstacleData.map((item, index) => (
+            <Obstacles
+              key={index}
+              ref={obstacleComponentRefs[index]}
+              obstacleWidth={obstacleWidth}
+              obstacleHeight={obstacleHeight}
+              obstaclesLeft={obstaclesLeft + (index * 13)}
+              gap={gap}
+              color={'blue'}
+              randomBottom={item}
+            />
+          ))}
+        </View>
+      </Pressable>
     </>
 
   );

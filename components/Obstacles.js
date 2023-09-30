@@ -1,25 +1,41 @@
 import React from 'react';
-import { StyleSheet, Text, View, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Dimensions, Image } from 'react-native';
 
-const Obstacles = React.forwardRef(({color, randomBottom, obstacleWidth, obstacleHeight, gap, obstaclesLeft}, ref) => {
+const Obstacles = React.forwardRef(({ index, color, randomBottom, obstacleWidth, obstacleHeight, gap, obstaclesLeft }, ref) => {
     return (
-        <>
-            <View 
+        <View
             ref={ref}
             style={{
+                display: 'flex',
+                justifyContent: 'center',
                 position: 'absolute',
-                backgroundColor: color,
                 width: obstacleWidth,
-                height: obstacleHeight,
+                height: 'fit-content',
                 left: obstaclesLeft,
-                top: (randomBottom/16).toFixed(2) + "rem",
+                top: (randomBottom),
                 transition: 'all .1 ease',
                 borderRadius: '5rem',
-            }}
-            />
-
-        </>
+            }}>
+            <Image
+                style={styles.tinyLogo}
+                source={
+                  require('../assets/Space Pixel/Asteroid-Large.png')
+                }
+              />
+            </View>
     )
 })
+
+const styles = StyleSheet.create({
+    tinyLogo: {
+      width: '5rem',
+      height: '2rem',
+      resizeMode: 'cover'
+    },
+    logo: {
+      width: 66,
+      height: 58,
+    },
+  });
 
 export default Obstacles;

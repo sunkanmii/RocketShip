@@ -5,7 +5,7 @@ import { StyleSheet, Text, View, Dimensions, Image } from 'react-native';
 const rocketHeight = 64
 const rocketWidth = 64
 const Rocket = React.forwardRef(({rocketBottom, rocketLeft}, ref) => {
-
+    
     return (
         <View 
         ref={ref}
@@ -15,7 +15,7 @@ const Rocket = React.forwardRef(({rocketBottom, rocketLeft}, ref) => {
             width: rocketWidth,
             position: 'absolute',
             bottom: rocketBottom,
-            left: rocketLeft - (rocketHeight/2),
+            left: rocketLeft - (rocketLeft) + 20,
             transition: 'all .2 ease',
         }}>
             <Image

@@ -9,7 +9,7 @@ const Obstacles = React.forwardRef(({ index, color, randomBottom, obstacleWidth,
                 display: 'flex',
                 justifyContent: 'center',
                 position: 'absolute',
-                width: obstacleWidth,
+                width: 64,
                 height: 'fit-content',
                 left: obstaclesLeft,
                 top: (randomBottom),
@@ -28,8 +28,8 @@ const Obstacles = React.forwardRef(({ index, color, randomBottom, obstacleWidth,
 
 const styles = StyleSheet.create({
     tinyLogo: {
-      width: '5rem',
-      height: '2rem',
+      width: 64,
+      height: '3rem',
       resizeMode: 'cover'
     },
     logo: {

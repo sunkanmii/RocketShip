@@ -1,8 +1,27 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Dimensions, Pressable, Animated } from 'react-native';
+import { StyleSheet, Text, View, Dimensions, Pressable, Animated, ImageBackground, Button, Alert, Image } from 'react-native';
 import Rocket from './components/Rocket';
 import Obstacles from './components/Obstacles';
+import RocketSelection from './components/RocketSelection';
+
+const rocketSkinInitialState = { rocketSkin: 'ship004.png', setRocketSkin: undefined };
+
+
+const RocketSkinContext = React.createContext(rocketSkinInitialState);
+
+const GlobalStateProvider = ({ children }) => {
+  const [rocketSkin, setRocketSkin] = React.useState(rocketSkinInitialState.rocketSkin);
+  const rocketSkinContextValue = React.useMemo(() => ({rocketSkin, setRocketSkin}), [rocketSkin]);
+
+  return (
+    <RocketSkinContext.Provider value={rocketSkinContextValue}>
+      {children}
+    </RocketSkinContext.Provider>
+  );
+};
+
+export const useRocketSkinState = () => React.useContext(RocketSkinContext);
 
 // Random number generator for bottom CSS value
 function generateRandomBottoms(amount, start, max) {
@@ -12,13 +31,14 @@ function generateRandomBottoms(amount, start, max) {
   }
   return arr;
 }
-
+// Screen width and height
+export const screenWidth = Dimensions.get("screen").width;
+export const screenHeight = Dimensions.get("screen").height;
 
 export default function App() {
+
   const gravity = 3;
 
-  const screenWidth = Dimensions.get("screen").width;
-  const screenHeight = Dimensions.get("screen").height;
   const rocketLeft = screenWidth / 2;
   const [rocketBottom, setRocketBottom] = useState(screenHeight / 2);
 
@@ -26,8 +46,8 @@ export default function App() {
   const [randomBottom] = useState(new Animated.Value(0));
 
   // Obstacle data
-  const [obstacleData, setObstacleData] = useState(generateRandomBottoms(5, 1, screenWidth/2));
-  
+  const [obstacleData, setObstacleData] = useState(generateRandomBottoms(5, 1, screenWidth / 2));
+
   const obstacleComponentRefs = obstacleData.map(() => useRef(null));
 
   // Invincibility
@@ -43,19 +63,21 @@ export default function App() {
   const [obstaclesLeft, setObstaclesLeft] = useState(screenWidth);
   const [obstacleNegHeight, setObstaclesNegHeight] = useState(0);
   const gap = 50;
-  let fallingRocketTimer;
+  let fallingRocketTimer = () => {
+    setInterval(() => {
+    setRocketBottom(rocketBottom => rocketBottom - gravity)
+
+  }, 30)
+};
   let obstaclesLeftTimerId;
   let obstaclesLeftTimerId2;
 
   // Rocket falling
   useEffect(() => {
     let timer = 30;
-    if (rocketBottom > 0) {
-      fallingRocketTimer = setInterval(() => {
-        setRocketBottom(rocketBottom => rocketBottom - gravity)
-
-      }, 30)
-
+    if (rocketBottom > 0)   {
+      fallingRocketTimer();
+      
       return () => {
         clearInterval(fallingRocketTimer)
       }
@@ -63,6 +85,7 @@ export default function App() {
 
   }, [rocketBottom]);
 
+  clearInterval(fallingRocketTimer)
   /**
    * Get many obstacles
   */
@@ -88,9 +111,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (obstaclesLeft + obstacleData[obstacleData.length-1] <= -obstacleWidth) {
+    if (obstaclesLeft + obstacleData[obstacleData.length - 1] <= -obstacleWidth) {
       // Reset obstaclesLeft and generate new obstacleData
-      console.log(obstacleData)
       setObstaclesLeft(screenWidth);
       setObstacleData(generateRandomBottoms(5, 1, screenHeight));
     }
@@ -106,6 +128,7 @@ export default function App() {
   // Function to start the game
   const startGame = () => {
     setStartTime(Date.now());
+    fallingRocketTimer();
   };
 
   // Function to calculate and update the distance
@@ -182,10 +205,10 @@ export default function App() {
                   width: width2,
                   height: height2,
                 };
-  
+
                 // Check for collision
                 const collisionDetected = isColliding(rect1, rect2);
-  
+
                 if (collisionDetected) {
                   setCollision(true);
                   gameOver();
@@ -203,22 +226,52 @@ export default function App() {
   const gameOver = () => {
     clearInterval(fallingRocketTimer);
     clearInterval(obstaclesLeftTimerId);
-    
+
     clearInterval(flyDistance);
     setIsGameOver(true);
   }
 
+
+
   return (
-    <>
-      <Text
+    <GlobalStateProvider>
+
+    <Pressable onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
+      <ImageBackground
         style={{
-          position: 'absolute',
-          top: '0',
-          left: '0',
-          zIndex: '3'
+          position: 'relative',
+          flex: 1,
+          justifyContent: 'center',
         }}
-      >Total Distance: {distance} meters</Text>
-      <Pressable onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
+        source={require('./assets/Space Pixel/pngs/space-2.png')} resizeMode="cover">
+
+
+        <Text
+          style={{
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            zIndex: '3',
+            color: 'white',
+          }}
+        >Total Distance: {distance} meters</Text>
+        <Pressable
+          title="Change Rocket"
+          style={styles.icon}
+          onPress={() => Alert.alert('Simple Button pressed')}
+          >
+          <Image
+            style={{
+              width: '4rem',
+              height: '4rem',
+              paddingRight: '.1rem',
+              position: 'relative',
+              zIndex: 5
+            }}
+            source={require('./assets/Space Pixel/icons8-pause-100.png')} />
+        </Pressable>
+
+
         <View style={styles.container}>
           <Rocket
             ref={rocketRef}
@@ -235,19 +288,79 @@ export default function App() {
               gap={gap}
               color={'blue'}
               randomBottom={item}
-            />
-          ))}
+              />
+              ))}
         </View>
-      </Pressable>
-    </>
 
+
+        <Pressable
+          title="start"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#9D1F1F',
+            position: 'absolute',
+            zIndex: 4,
+            bottom: 0,
+            right: (screenWidth / 2) + 60,
+            marginBottom: '2rem',
+            width: '4rem',
+            height: '4rem',
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Text>Start</Text>
+        </Pressable>
+
+        <Pressable
+          title="start"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#9D1F1F',
+            position: 'absolute',
+            zIndex: 4,
+            bottom: 0,
+            left: (screenWidth / 2) + 40,
+            marginBottom: '2rem',
+            width: '4rem',
+            height: '4rem',
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+          >
+          <Text>Change Skin</Text>
+        </Pressable>
+
+        <Pressable
+          title="Change Rocket"
+          style={{
+            position: 'absolute',
+            right: 0,
+            bottom: 0,
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Image
+            style={{
+              width: '4rem',
+              height: '4rem',
+              paddingRight: '.1rem',
+              marginBottom: '2rem',
+              zIndex: 7,
+            }}
+            source={require('./assets/Space Pixel/icons8-question-mark-100.png')} />
+        </Pressable>
+
+        <RocketSelection/>
+      </ImageBackground>
+    </Pressable>
+    </GlobalStateProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: '1',
-    backgroundColor: '#fff',
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -255,7 +368,13 @@ const styles = StyleSheet.create({
     height: '100vh',
     position: 'relative',
     width: '100vw'
+  },
+  icon: {
+    position: 'absolute',
+    zIndex: 3,
+    top: 0,
+    right: 0,
+    width: '4rem',
+    height: '4rem',
   }
-  // transition:{
-  // }
 });

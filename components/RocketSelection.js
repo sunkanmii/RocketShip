@@ -1,22 +1,30 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, memo } from 'react';
 import { StyleSheet, Text, View, Dimensions, Image, Pressable } from 'react-native';
-import { useRocketSkinState, screenWidth } from '../App';
+import { useSharedState } from '../store';
+import { screenWidth } from '../App';
 
 
 const rocketHeight = 64
 const rocketWidth = 64
-const RocketSelection = React.memo(forwardRef(({ rocketBottom, rocketLeft }, ref) => {
+const RocketSelection = memo(forwardRef(({ rocketBottom, rocketLeft }, ref) => {
     const allRockets = ['ship004.png', 'space-ship.gif', 'ship005.png', 'ship006.png', 'ship007.png'];
 
     const [currSkin, setCurrSkin] = useState(allRockets[0]);
     const [currInd, setCurrInd] = useState(0);
-    const [displayVal, setDisplayVal] = useState('none');
-    const { rocketSkin, setRocketSkin } = useRocketSkinState();
-    
+    // set states from react-tracked
+    const [state, setState] = useSharedState();
+    const changeSkinGlobally = () => {
+        setState((prev) => ({...prev, rocketSkin: currSkin}))
+    }
+
+    const toggleRocketSelectionScreen = () => {
+        setState((prev) => ({...prev, rocketSelectionIsActive: !state.rocketSelectionIsActive}))
+    }
+
     const nextSkin = () => {
         if (currInd == allRockets.length - 1) {
             setCurrInd(0);
-        } 
+        }
         else {
             setCurrInd(currInd => currInd + 1);
         }
@@ -38,7 +46,7 @@ const RocketSelection = React.memo(forwardRef(({ rocketBottom, rocketLeft }, ref
         <View
             ref={ref}
             style={{
-                display: displayVal,
+                display: 'grid',
                 gridTemplateColumns: '1fr 3fr 1fr',
                 gridTemplateRows: '2rem 2fr 1fr',
                 justifyContent: 'center',
@@ -57,14 +65,27 @@ const RocketSelection = React.memo(forwardRef(({ rocketBottom, rocketLeft }, ref
             }}>
             <Text
                 style={{
-                    gridArea: '1 / 1 / 2 / 4',
+                    gridArea: '1 / 2 / 2 / 3',
 
                 }}
             >Rocket Selection</Text>
+            
+            <Pressable 
+                style={{
+                    gridArea: '1 / 3 / 2 / 4',
+                    width: '2rem',
+                    height: '2rem'
+                }}
+            onPress={toggleRocketSelectionScreen}>
+                <Text>
+                X
+                </Text>
+            </Pressable>
+
             <Pressable
                 onPress={prevSkin}
                 style={{
-                    gridArea: '2 / 1 / 3 / 2'
+                    gridArea: '1 / 1 / 3 / 2'
                 }}
             >
                 <Image
@@ -77,12 +98,16 @@ const RocketSelection = React.memo(forwardRef(({ rocketBottom, rocketLeft }, ref
                 source={require(`../assets/Space Pixel/${currSkin}`)} />
             <Pressable
                 onPress={nextSkin}
+                style={{
+                    gridArea: '2 / 3 / 3 / 4'
+                }}
             >
                 <Image
                     style={styles.tinyLogo}
                     source={require('../assets/Space Pixel/icons8-double-right-100.png')} />
             </Pressable>
             <Pressable
+                onPress={changeSkinGlobally}
                 style={{
                     justifyContent: 'center',
                     alignItems: 'center',

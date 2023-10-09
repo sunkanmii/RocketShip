@@ -1,11 +1,12 @@
-import React from 'react';
+import React, {forwardRef} from 'react';
 import { StyleSheet, Text, View, Dimensions, Image } from 'react-native';
-
+import { useSharedState } from '../store';
 
 const rocketHeight = 64
 const rocketWidth = 64
-const Rocket = React.forwardRef(({rocketBottom, rocketLeft}, ref) => {
-    
+
+const Rocket = forwardRef(({rocketBottom, rocketLeft}, ref) => {
+    const [state, setState] = useSharedState();
     return (
         <View 
         ref={ref}
@@ -21,7 +22,7 @@ const Rocket = React.forwardRef(({rocketBottom, rocketLeft}, ref) => {
             <Image
         style={styles.tinyLogo}
         source={
-            require('../assets/Space Pixel/space-ship.gif')
+            require(`../assets/Space Pixel/${state.rocketSkin}`)
           }
       />
         </View>

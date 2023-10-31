@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSharedState } from '../store'
-import { StyleSheet, Text, View, Dimensions, Pressable, Animated, ImageBackground, Button, Alert, Image, LayoutAnimation } from 'react-native';
+import { StyleSheet, Text, View, Dimensions, Pressable, Animated, ImageBackground, Easing, Button, Alert, Image, LayoutAnimation } from 'react-native';
 import Rocket from './Rocket';
 import Obstacles from './Obstacles';
 import RocketSelection from './RocketSelection';
+import { move } from 'formik';
 
 // Random number generator for bottom CSS value
 function generateRandomBottoms(amount, start, max) {
@@ -29,8 +30,8 @@ export default function GameScreen() {
   const rocketLeft = screenWidth / 2;
   const [rocketBottom, setRocketBottom] = useState(screenHeight / 2);
 
-  
-  
+
+
   // Random bottom animation state
   const [randomBottom] = useState(new Animated.Value(0));
 
@@ -44,7 +45,7 @@ export default function GameScreen() {
 
   // Game Over states
   const [isGameOver, setIsGameOver] = useState(false);
-  
+
   // Obstacle values
   const obstacleWidth = 60;
   const midPoint = obstacleWidth / 2;
@@ -55,33 +56,93 @@ export default function GameScreen() {
   let fallingRocketTimer;
   let obstaclesLeftTimerId;
   let obstaclesLeftTimerId2;
-  
+
   // Animate background image
-  const animateBackground = useRef(new Animated.Value(300)).current;
-  
-  useEffect(() => {
-    Animated.timing(animateBackground, {
-      toValue: 0,
-      duration: 10000,
+  const AnimatedImageComponent = Animated.createAnimatedComponent(ImageBackground);
+  const initialValue = 0;
+  const animateValue = useRef(new Animated.Value(initialValue)).current;
+  const animateValue2 = useRef(new Animated.Value(initialValue)).current;
+  const animationDuration = 5000;
+
+  let translate = () => {
+    animateValue.setValue(initialValue);
+    Animated.timing(animateValue, {
+      toValue: 90,
+      duration: animationDuration,
+      easing: Easing.linear,
       useNativeDriver: true,
-    }).start();
-  }, [])
-  // Rocket falling
+    }).start(() => secondAnimation() );
+  };;
+
+  let secondAnimation = () => {
+    animateValue2.setValue(initialValue);
+    Animated.timing(animateValue2, {
+      toValue: 90,
+      duration: (animationDuration*2),
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start(() => translate());
+  };
+
+  // UseEffect for first animation
   useEffect(() => {
-    let timer = 30;
-    if (rocketBottom > 0) {
-      fallingRocketTimer = setInterval(() => {
-        
-        setRocketBottom(rocketBottom => rocketBottom - gravity)
+    translate = () => {
+      animateValue.setValue(initialValue);
+      Animated.timing(animateValue, {
+        toValue: 90,
+        duration: animationDuration,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start(() => secondAnimation() );
+    };
 
-      }, 30);
+    translate();
+  }, [animateValue]);
+  
+  // Animation for first image
+  const screenRangeDecrease = [0, -screenWidth]
+  const moveRightAnimation = animateValue.interpolate({
+    inputRange: [0, 90],
+    outputRange: screenRangeDecrease
+  })
 
-      return () => {
-        clearInterval(fallingRocketTimer)
-      }
-    }
 
-  }, [rocketBottom]);
+  // Animation for second image to make it appear like an infinite loop
+
+  useEffect(() => {
+    secondAnimation = () => {
+      animateValue2.setValue(initialValue);
+      Animated.timing(animateValue2, {
+        toValue: 90,
+        duration: (animationDuration*2),
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start(() => translate());
+    };
+
+    secondAnimation();
+  }, [animateValue2]);
+
+  const moveRightAnimation2 = animateValue2.interpolate({
+    inputRange: [0, 90],
+    outputRange: [screenWidth, -screenWidth]
+  })
+  // Rocket falling
+  // useEffect(() => {
+  //   let timer = 30;
+  //   if (rocketBottom > 0) {
+  //     fallingRocketTimer = setInterval(() => {
+
+  //       setRocketBottom(rocketBottom => rocketBottom - gravity)
+
+  //     }, 30);
+
+  //     return () => {
+  //       clearInterval(fallingRocketTimer)
+  //     }
+  //   }
+
+  // }, [rocketBottom]);
 
   /**
    * Get many obstacles
@@ -94,24 +155,24 @@ export default function GameScreen() {
   // Increase obstacle amount every 30s
   // Obstacles
 
-  useEffect(() => {
-    const obstaclesLeftTimerId = setInterval(() => {
-      setObstaclesLeft((prevLeft) => prevLeft - 5);
-    }, 30);
+  // useEffect(() => {
+  //   const obstaclesLeftTimerId = setInterval(() => {
+  //     setObstaclesLeft((prevLeft) => prevLeft - 5);
+  //   }, 30);
 
-    return () => {
-      clearInterval(obstaclesLeftTimerId);
-    };
-  }, []);
+  //   return () => {
+  //     clearInterval(obstaclesLeftTimerId);
+  //   };
+  // }, []);
 
-  useEffect(() => {
-    if (obstaclesLeft + obstacleData[obstacleData.length - 1] <= -obstacleWidth) {
-      
-      // Reset obstaclesLeft and generate new obstacleData
-      setObstaclesLeft(screenWidth);
-      setObstacleData(generateRandomBottoms(5, 1, screenHeight));
-    }
-  }, [obstaclesLeft]);
+  // useEffect(() => {
+  //   if (obstaclesLeft + obstacleData[obstacleData.length - 1] <= -obstacleWidth) {
+
+  //     // Reset obstaclesLeft and generate new obstacleData
+  //     setObstaclesLeft(screenWidth);
+  //     setObstacleData(generateRandomBottoms(5, 1, screenHeight));
+  //   }
+  // }, [obstaclesLeft]);
 
   /**
    * Calculating distance travelled
@@ -149,21 +210,21 @@ export default function GameScreen() {
   let flyDistance;
   const intervalRef = useRef(null);
   const fly = () => {
-    if (!isGameOver && rocketBottom <= screenHeight - 30) {
-      console.log(rocketBottom);
-      console.log(screenHeight);
-      setInvincible(false);
-      setRocketBottom(rocketBottom => rocketBottom + 30);
-    }
+    // if (!isGameOver && rocketBottom <= screenHeight - 30) {
+    //   console.log(rocketBottom);
+    //   console.log(screenHeight);
+    //   setInvincible(false);
+    //   setRocketBottom(rocketBottom => rocketBottom + 30);
+    // }
   }
 
   const longFly = () => {
-    if (!isGameOver && rocketBottom <= screenHeight - 30) {
+    // if (!isGameOver && rocketBottom <= screenHeight - 30) {
 
-      intervalRef.current = setInterval(() => {
-        setRocketBottom(rocketBottom => rocketBottom + 30);
-      }, 30);
-    }
+    //   intervalRef.current = setInterval(() => {
+    //     setRocketBottom(rocketBottom => rocketBottom + 30);
+    //   }, 30);
+    // }
   }
   const stopFlying = () => {
     clearInterval(intervalRef.current);
@@ -221,6 +282,7 @@ export default function GameScreen() {
   }, [rocketRef, obstacleComponentRefs]);
 
 
+
   const gameOver = () => {
     clearInterval(fallingRocketTimer);
     clearInterval(obstaclesLeftTimerId);
@@ -232,184 +294,192 @@ export default function GameScreen() {
   return (
     <>
 
-      <Pressable onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
-        <Animated.ImageBackground
+      <Pressable
+        style={{ overflow: 'hidden', justifyContent: 'center' }}
+        onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
+        <AnimatedImageComponent
+          style={[styles.background, {
+            transform: [
+              { translateX: moveRightAnimation }
+            ],
+          }]}
+
+          source={require('../assets/Space Pixel/pngs/space-2.png')} />
+
+        <AnimatedImageComponent
+          style={[styles.background,{
+            transform: [
+              { translateX: moveRightAnimation2 },
+            ],
+            width: screenWidth,
+            right: '.9px'
+          }]}
+          source={require('../assets/Space Pixel/pngs/space-2.png')}
+        />
+        <Text
           style={{
-            position: 'relative',
-            flex: 1,
-            backgroundSize: `${animateBackground.interpolate({
-              inputRange: [0, 300],
-              outputRange: [500, -500]
-            })} ${animateBackground}`,
-            justifyContent: 'center',
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            zIndex: '3',
+            color: 'white',
           }}
-          source={require('../assets/Space Pixel/pngs/space-2.png')} resizeMode="cover">
-
-
-          <Text
+        >Total Distance: {distance} meters</Text>
+        <Pressable
+          title="Change Rocket"
+          style={styles.icon}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Image
             style={{
-              position: 'absolute',
-              top: '0',
-              left: '0',
-              zIndex: '3',
-              color: 'white',
+              width: '4rem',
+              height: '4rem',
+              paddingRight: '.1rem',
+              position: 'relative',
+              zIndex: 5
             }}
-          >Total Distance: {distance} meters</Text>
-          <Pressable
-            title="Change Rocket"
-            style={styles.icon}
-            onPress={() => Alert.alert('Simple Button pressed')}
-          >
-            <Image
-              style={{
-                width: '4rem',
-                height: '4rem',
-                paddingRight: '.1rem',
-                position: 'relative',
-                zIndex: 5
-              }}
-              source={require('../assets/Space Pixel/icons8-pause-100.png')} />
-          </Pressable>
+            source={require('../assets/Space Pixel/icons8-pause-100.png')} />
+        </Pressable>
 
 
-          <View style={styles.container}>
-            <Rocket
-              ref={rocketRef}
-              rocketBottom={rocketBottom}
-              rocketLeft={rocketLeft}
+        <View style={styles.container}>
+          <Rocket
+            ref={rocketRef}
+            rocketBottom={rocketBottom}
+            rocketLeft={rocketLeft}
+          />
+          {obstacleData.map((item, index) => (
+            <Obstacles
+              key={index}
+              ref={obstacleComponentRefs[index]}
+              obstacleWidth={obstacleWidth}
+              obstacleHeight={obstacleHeight}
+              obstaclesLeft={obstaclesLeft + (index * 13)}
+              gap={gap}
+              color={'blue'}
+              randomBottom={item}
             />
-            {obstacleData.map((item, index) => (
-              <Obstacles
-                key={index}
-                ref={obstacleComponentRefs[index]}
-                obstacleWidth={obstacleWidth}
-                obstacleHeight={obstacleHeight}
-                obstaclesLeft={obstaclesLeft + (index * 13)}
-                gap={gap}
-                color={'blue'}
-                randomBottom={item}
-              />
-            ))}
-          </View>
+          ))}
+        </View>
 
 
-          <Pressable
-            title="start"
+        <Pressable
+          title="start"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#9D1F1F',
+            position: 'absolute',
+            zIndex: 4,
+            bottom: 0,
+            right: (screenWidth / 2) + 60,
+            marginBottom: '2rem',
+            width: '4rem',
+            height: '4rem',
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Text>Start</Text>
+        </Pressable>
+
+        <Pressable
+          title="Change Skin"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#9D1F1F',
+            position: 'absolute',
+            zIndex: 4,
+            bottom: 0,
+            left: (screenWidth / 2) + 40,
+            marginBottom: '2rem',
+            width: '4rem',
+            height: '4rem',
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Text>Change Skin</Text>
+        </Pressable>
+        <Pressable
+          title="Change Skin"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#9D1F1F',
+            position: 'absolute',
+            zIndex: 4,
+            bottom: 0,
+            left: (screenWidth / 2) + 40,
+            marginBottom: '2rem',
+            width: '4rem',
+            height: '4rem',
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Text>Change Skin</Text>
+        </Pressable>
+
+        <Pressable
+          title="question mark"
+          style={{
+            position: 'absolute',
+            right: 0,
+            bottom: 0,
+          }}
+          onPress={() => Alert.alert('Simple Button pressed')}
+        >
+          <Image
             style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#9D1F1F',
-              position: 'absolute',
-              zIndex: 4,
-              bottom: 0,
-              right: (screenWidth / 2) + 60,
-              marginBottom: '2rem',
               width: '4rem',
               height: '4rem',
-            }}
-            onPress={() => Alert.alert('Simple Button pressed')}
-          >
-            <Text>Start</Text>
-          </Pressable>
-
-          <Pressable
-            title="Change Skin"
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#9D1F1F',
-              position: 'absolute',
-              zIndex: 4,
-              bottom: 0,
-              left: (screenWidth / 2) + 40,
+              paddingRight: '.1rem',
               marginBottom: '2rem',
-              width: '4rem',
-              height: '4rem',
+              zIndex: 7,
             }}
-            onPress={() => Alert.alert('Simple Button pressed')}
-          >
-            <Text>Change Skin</Text>
-          </Pressable>
-          <Pressable
-            title="Change Skin"
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#9D1F1F',
-              position: 'absolute',
-              zIndex: 4,
-              bottom: 0,
-              left: (screenWidth / 2) + 40,
-              marginBottom: '2rem',
-              width: '4rem',
-              height: '4rem',
-            }}
-            onPress={() => Alert.alert('Simple Button pressed')}
-          >
-            <Text>Change Skin</Text>
-          </Pressable>
+            source={require('../assets/Space Pixel/icons8-question-mark-100.png')} />
+        </Pressable>
+        {
+          state.rocketSelectionIsActive ? <RocketSelection />
+            :
 
-          <Pressable
-            title="question mark"
-            style={{
-              position: 'absolute',
-              right: 0,
-              bottom: 0,
-            }}
-            onPress={() => Alert.alert('Simple Button pressed')}
-          >
-            <Image
+            <Pressable
+              title="Change Skin"
               style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#9D1F1F',
+                position: 'absolute',
+                zIndex: 4,
+                bottom: 0,
+                left: (screenWidth / 2) + 40,
+                marginBottom: '2rem',
                 width: '4rem',
                 height: '4rem',
-                paddingRight: '.1rem',
-                marginBottom: '2rem',
-                zIndex: 7,
               }}
-              source={require('../assets/Space Pixel/icons8-question-mark-100.png')} />
-          </Pressable>
-          {
-            state.rocketSelectionIsActive ? <RocketSelection />
-              :
+              onPress={() => Alert.alert('Simple Button pressed')}
+            >
+              <Text>Change Skin</Text>
+            </Pressable>
+        }
+        <Pressable
+          title="Change Skin"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#9D1F1F',
+            position: 'absolute',
+            zIndex: 4,
+            bottom: 0,
+            left: (screenWidth / 2) + 40,
+            marginBottom: '2rem',
+            width: '4rem',
+            height: '4rem',
+          }}
+          onPress={toggleRocketSelectionScreen}
+        >
+          <Text>Change Skin</Text>
+        </Pressable>
 
-              <Pressable
-                title="Change Skin"
-                style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#9D1F1F',
-                  position: 'absolute',
-                  zIndex: 4,
-                  bottom: 0,
-                  left: (screenWidth / 2) + 40,
-                  marginBottom: '2rem',
-                  width: '4rem',
-                  height: '4rem',
-                }}
-                onPress={() => Alert.alert('Simple Button pressed')}
-              >
-                <Text>Change Skin</Text>
-              </Pressable>
-          }
-          <Pressable
-            title="Change Skin"
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#9D1F1F',
-              position: 'absolute',
-              zIndex: 4,
-              bottom: 0,
-              left: (screenWidth / 2) + 40,
-              marginBottom: '2rem',
-              width: '4rem',
-              height: '4rem',
-            }}
-            onPress={toggleRocketSelectionScreen}
-          >
-            <Text>Change Skin</Text>
-          </Pressable>
-        </Animated.ImageBackground>
       </Pressable>
     </>
   );
@@ -433,5 +503,12 @@ const styles = StyleSheet.create({
     right: 0,
     width: '4rem',
     height: '4rem',
+  },
+  background: {
+    position: 'absolute',
+    width: screenWidth,
+    height: screenHeight,
+    top: 0,
+    resizeMode: 'cover',
   }
 });

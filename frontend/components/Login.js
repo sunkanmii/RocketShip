@@ -1,63 +1,63 @@
-import React, { useEffect, useState } from "react"
-import axios from "axios"
-import { useNavigate, Link } from "react-router-dom"
+// import React, { useEffect, useState } from "react"
+// import axios from "axios"
+// import { useNavigate, Link } from "react-router-dom"
 
 
-function Login() {
+// function Login() {
 
-    const history=useNavigate();
+//     const history = useNavigate();
 
-    const [email,setEmail]=useState('')
-    const [password,setPassword]=useState('')
+//     const [email, setEmail] = useState('');
+//     const [password, setPassword] = useState('');
 
-    async function submit(e){
-        e.preventDefault();
+//     async function submit(e){
+//         e.preventDefault();
 
-        try{
+//         try{
 
-            await axios.post("http://localhost:8000/",{
-                email,password
-            })
-            .then(res=>{
-                if(res.data=="exist"){
-                    history("/home",{state:{id:email}})
-                }
-                else if(res.data=="notexist"){
-                    alert("User have not sign up")
-                }
-            })
-            .catch(e=>{
-                alert("wrong details")
-                console.log(e);
-            })
+//             await axios.post("http://localhost:8000/",{
+//                 email,password
+//             })
+//             .then(res=>{
+//                 if(res.data=="exist"){
+//                     history("/home",{state:{id:email}})
+//                 }
+//                 else if(res.data=="notexist"){
+//                     alert("User have not sign up")
+//                 }
+//             })
+//             .catch(e=>{
+//                 alert("wrong details")
+//                 console.log(e);
+//             })
 
-        }
-        catch(e){
-            console.log(e);
+//         }
+//         catch(e){
+//             console.log(e);
 
-        }
+//         }
 
-    }
-    
-    return (
-        <div>
-            <h1>Login</h1>
+//     }
 
-            <form action="POST">
-                <input type="email" onChange={(e) => { setEmail(e.target.value) }} placeholder="Email" />
-                <input type="password" onChange={(e) => { setPassword(e.target.value) }} placeholder="Password" />
-                <input type="submit" onClick={submit} />
+//     return (
+//         <View>
+//             <h1>Login</h1>
 
-            </form>
+//             <form action="POST">
+//                 <input type="email" onChange={(e) => { setEmail(e.target.value) }} placeholder="Email" />
+//                 <input type="password" onChange={(e) => { setPassword(e.target.value) }} placeholder="Password" />
+//                 <input type="submit" onClick={submit} />
 
-            <br />
-            <p>OR</p>
-            <br />
+//             </form>
 
-            <Link to="/signup">Signup Page</Link>
+//             <br />
+//             <p>OR</p>
+//             <br />
 
-        </div>
-    )
-}
+//             <Link to="/signup">Signup Page</Link>
 
-export default Login
+//         </View>
+//     )
+// }
+
+// export default Login

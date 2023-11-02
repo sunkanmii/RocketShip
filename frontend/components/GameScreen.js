@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSharedState } from '../store'
-import { StyleSheet, Text, View, Dimensions, Pressable, Animated, ImageBackground, Easing, Button, Alert, Image, LayoutAnimation } from 'react-native';
+import { StyleSheet, Text, View, Dimensions, Pressable, Animated, ImageBackground, Easing, Button, Alert, Image } from 'react-native';
 import Rocket from './Rocket';
 import Obstacles from './Obstacles';
 import RocketSelection from './RocketSelection';
@@ -25,12 +25,10 @@ export default function GameScreen() {
   const toggleRocketSelectionScreen = () => {
     setState((prev) => ({ ...prev, rocketSelectionIsActive: !state.rocketSelectionIsActive }))
   }
-  const gravity = 3;
+
 
   const rocketLeft = screenWidth / 2;
   const [rocketBottom, setRocketBottom] = useState(screenHeight / 2);
-
-
 
   // Random bottom animation state
   const [randomBottom] = useState(new Animated.Value(0));
@@ -62,7 +60,7 @@ export default function GameScreen() {
   const initialValue = 0;
   const animateValue = useRef(new Animated.Value(initialValue)).current;
   const animateValue2 = useRef(new Animated.Value(initialValue)).current;
-  const animationDuration = 5000;
+  let animationDuration = 25000;
 
   let translate = () => {
     animateValue.setValue(initialValue);
@@ -72,7 +70,7 @@ export default function GameScreen() {
       easing: Easing.linear,
       useNativeDriver: true,
     }).start(() => secondAnimation() );
-  };;
+  };
 
   let secondAnimation = () => {
     animateValue2.setValue(initialValue);
@@ -127,22 +125,23 @@ export default function GameScreen() {
     inputRange: [0, 90],
     outputRange: [screenWidth, -screenWidth]
   })
+
   // Rocket falling
-  // useEffect(() => {
-  //   let timer = 30;
-  //   if (rocketBottom > 0) {
-  //     fallingRocketTimer = setInterval(() => {
+  let fallDownValue = useRef(new Animated.Value(rocketBottom)).current;
+  let gravity = 5000;
+  
+  let gravityForRocket = Animated.timing(fallDownValue, {
+      toValue: 0,
+      duration: gravity,
+      easing: Easing.linear,
+      useNativeDriver: true,
+  })
 
-  //       setRocketBottom(rocketBottom => rocketBottom - gravity)
+  // UseEffect for first animation
+  useEffect(() => {
+    gravityForRocket.start(() => gravityForRocket);
 
-  //     }, 30);
-
-  //     return () => {
-  //       clearInterval(fallingRocketTimer)
-  //     }
-  //   }
-
-  // }, [rocketBottom]);
+  }, [fallDownValue]);
 
   /**
    * Get many obstacles
@@ -150,8 +149,7 @@ export default function GameScreen() {
 
   let amount = 5;
   let obstacleAmountTimer;
-
-
+  
   // Increase obstacle amount every 30s
   // Obstacles
 
@@ -210,27 +208,28 @@ export default function GameScreen() {
   let flyDistance;
   const intervalRef = useRef(null);
   const fly = () => {
-    // if (!isGameOver && rocketBottom <= screenHeight - 30) {
-    //   console.log(rocketBottom);
-    //   console.log(screenHeight);
-    //   setInvincible(false);
-    //   setRocketBottom(rocketBottom => rocketBottom + 30);
-    // }
+    if (!isGameOver && rocketBottom <= screenHeight - 30) {
+      fallDownValue._startingValue = fallDownValue._value+20
+      gravityForRocket.reset();
+      gravityForRocket.start();
+      setInvincible(false);
+      
+    }
   }
 
   const longFly = () => {
-    // if (!isGameOver && rocketBottom <= screenHeight - 30) {
+    if (!isGameOver && rocketBottom <= screenHeight - 30) {
 
-    //   intervalRef.current = setInterval(() => {
-    //     setRocketBottom(rocketBottom => rocketBottom + 30);
-    //   }, 30);
-    // }
+      intervalRef.current = setInterval(() => {
+        fallDownValue._startingValue = fallDownValue._value+10;
+        gravityForRocket.reset();
+        gravityForRocket.start();
+      }, 30);
+    }
   }
   const stopFlying = () => {
     clearInterval(intervalRef.current);
   }
-
-
 
   //Check for collisions
   function isColliding(rect1, rect2) {
@@ -293,10 +292,10 @@ export default function GameScreen() {
 
   return (
     <>
-
       <Pressable
         style={{ overflow: 'hidden', justifyContent: 'center' }}
         onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
+        
         <AnimatedImageComponent
           style={[styles.background, {
             transform: [
@@ -341,12 +340,12 @@ export default function GameScreen() {
             source={require('../assets/Space Pixel/icons8-pause-100.png')} />
         </Pressable>
 
-
         <View style={styles.container}>
           <Rocket
             ref={rocketRef}
             rocketBottom={rocketBottom}
             rocketLeft={rocketLeft}
+            fallDownValue={fallDownValue}
           />
           {obstacleData.map((item, index) => (
             <Obstacles

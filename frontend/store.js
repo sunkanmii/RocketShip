@@ -8,4 +8,4 @@ const initialGlobalState = {
 
 const useValue = () => useState(initialGlobalState);
 
-export const { Provider: SharedStateProvider, useTracked: useSharedState } = createContainer(useValue);  
+export const { Provider: SharedStateProvider, useTracked: useSharedState } = createContainer(useValue);

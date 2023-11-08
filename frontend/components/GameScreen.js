@@ -62,6 +62,8 @@ export default function GameScreen() {
   const animateValue2 = useRef(new Animated.Value(initialValue)).current;
   let animationDuration = 25000;
 
+  let [screenClicked, setScreenClicked] = useState(false);
+
   let translate = () => {
     animateValue.setValue(initialValue);
     Animated.timing(animateValue, {
@@ -128,7 +130,7 @@ export default function GameScreen() {
 
   // Rocket falling
   let fallDownValue = useRef(new Animated.Value(rocketBottom)).current;
-  let gravity = 5000;
+  let gravity = 15000;
   
   let gravityForRocket = Animated.timing(fallDownValue, {
       toValue: 0,
@@ -142,35 +144,6 @@ export default function GameScreen() {
     gravityForRocket.start(() => gravityForRocket);
 
   }, [fallDownValue]);
-
-  /**
-   * Get many obstacles
-  */
-
-  let amount = 5;
-  let obstacleAmountTimer;
-  
-  // Increase obstacle amount every 30s
-  // Obstacles
-
-  // useEffect(() => {
-  //   const obstaclesLeftTimerId = setInterval(() => {
-  //     setObstaclesLeft((prevLeft) => prevLeft - 5);
-  //   }, 30);
-
-  //   return () => {
-  //     clearInterval(obstaclesLeftTimerId);
-  //   };
-  // }, []);
-
-  // useEffect(() => {
-  //   if (obstaclesLeft + obstacleData[obstacleData.length - 1] <= -obstacleWidth) {
-
-  //     // Reset obstaclesLeft and generate new obstacleData
-  //     setObstaclesLeft(screenWidth);
-  //     setObstacleData(generateRandomBottoms(5, 1, screenHeight));
-  //   }
-  // }, [obstaclesLeft]);
 
   /**
    * Calculating distance travelled
@@ -207,26 +180,40 @@ export default function GameScreen() {
   // Fly function
   let flyDistance;
   const intervalRef = useRef(null);
+  const increaseBocketBottom = useRef(new Animated.Value(fallDownValue._value)).current
+
+  let boostForRocket = (boost) => {
+    fallDownValue.stopAnimation(value => {
+      fallDownValue.setValue(value);
+
+      Animated.timing(fallDownValue, {
+        toValue: value+boost,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => gravityForRocket.start())
+  })
+
+  }
+
+  let longBoostForRocket = () => {
+    
+  }
   const fly = () => {
-    if (!isGameOver && rocketBottom <= screenHeight - 30) {
-      fallDownValue._startingValue = fallDownValue._value+20
-      gravityForRocket.reset();
-      gravityForRocket.start();
-      setInvincible(false);
-      
+    if (!isGameOver && fallDownValue._value <= screenHeight - 130) {
+      boostForRocket(10);
+      setInvincible(false); 
     }
   }
 
   const longFly = () => {
-    if (!isGameOver && rocketBottom <= screenHeight - 30) {
+    if (!isGameOver && fallDownValue._value <= screenHeight - 130) {
 
       intervalRef.current = setInterval(() => {
-        fallDownValue._startingValue = fallDownValue._value+10;
-        gravityForRocket.reset();
-        gravityForRocket.start();
-      }, 30);
+        boostForRocket(40);
+      }, 10);
     }
   }
+
   const stopFlying = () => {
     clearInterval(intervalRef.current);
   }

@@ -1,10 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSharedState } from '../store'
 import { StyleSheet, Text, View, Dimensions, Pressable, Animated, ImageBackground, Easing, Button, Alert, Image } from 'react-native';
+import { ThemeProvider, createTheme } from '@rneui/themed';
+
 import Rocket from './Rocket';
 import Obstacles from './Obstacles';
 import RocketSelection from './RocketSelection';
+
 import { move } from 'formik';
+import HighScores from './HighScores';
+
+
+
+// Theme for app
+const theme = createTheme({
+  lightColors: {
+    primary: '#e7e7e8',
+  },
+  darkColors: {
+    primary: '#000',
+  },
+  mode: 'light',
+}); 
 
 // Random number generator for bottom CSS value
 function generateRandomBottoms(amount, start, max) {
@@ -14,6 +31,16 @@ function generateRandomBottoms(amount, start, max) {
   }
   return arr;
 }
+
+function generateMultipleObjectsOf(item, amount) {
+  let arr = [];
+
+  for (let i = 0; i < amount; i++) {
+    arr.push(item);
+  }
+  return arr;
+}
+
 
 // Screen width and height
 export const screenWidth = Dimensions.get("screen").width;
@@ -26,12 +53,10 @@ export default function GameScreen() {
     setState((prev) => ({ ...prev, rocketSelectionIsActive: !state.rocketSelectionIsActive }))
   }
 
+  
 
   const rocketLeft = screenWidth / 2;
   const [rocketBottom, setRocketBottom] = useState(screenHeight / 2);
-
-  // Random bottom animation state
-  const [randomBottom] = useState(new Animated.Value(0));
 
   // Obstacle data
   const [obstacleData, setObstacleData] = useState(generateRandomBottoms(5, 1, screenWidth / 2));
@@ -64,6 +89,11 @@ export default function GameScreen() {
 
   let [screenClicked, setScreenClicked] = useState(false);
 
+
+  // Start button state
+  let [displayStartButton, setDisplayStartButton] = useState('flex');
+  let [rocketSelectionButton, setRocketSelectionButton] = useState('flex');
+
   let translate = () => {
     animateValue.setValue(initialValue);
     Animated.timing(animateValue, {
@@ -71,14 +101,14 @@ export default function GameScreen() {
       duration: animationDuration,
       easing: Easing.linear,
       useNativeDriver: true,
-    }).start(() => secondAnimation() );
+    }).start(() => secondAnimation());
   };
 
   let secondAnimation = () => {
     animateValue2.setValue(initialValue);
     Animated.timing(animateValue2, {
       toValue: 90,
-      duration: (animationDuration*2),
+      duration: (animationDuration * 2),
       easing: Easing.linear,
       useNativeDriver: true,
     }).start(() => translate());
@@ -86,19 +116,9 @@ export default function GameScreen() {
 
   // UseEffect for first animation
   useEffect(() => {
-    translate = () => {
-      animateValue.setValue(initialValue);
-      Animated.timing(animateValue, {
-        toValue: 90,
-        duration: animationDuration,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }).start(() => secondAnimation() );
-    };
-
     translate();
   }, [animateValue]);
-  
+
   // Animation for first image
   const screenRangeDecrease = [0, -screenWidth]
   const moveRightAnimation = animateValue.interpolate({
@@ -110,16 +130,6 @@ export default function GameScreen() {
   // Animation for second image to make it appear like an infinite loop
 
   useEffect(() => {
-    secondAnimation = () => {
-      animateValue2.setValue(initialValue);
-      Animated.timing(animateValue2, {
-        toValue: 90,
-        duration: (animationDuration*2),
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }).start(() => translate());
-    };
-
     secondAnimation();
   }, [animateValue2]);
 
@@ -128,22 +138,72 @@ export default function GameScreen() {
     outputRange: [screenWidth, -screenWidth]
   })
 
+
+  const AnimatedImage1 = useMemo(() => (
+    <AnimatedImageComponent
+      style={[styles.background, { transform: [{ translateX: moveRightAnimation }] }]}
+      source={require('../assets/Space Pixel/pngs/space-2.png')}
+    />
+  ), [moveRightAnimation]);
+
+  const AnimatedImage2 = useMemo(() => (
+    <AnimatedImageComponent
+      style={[styles.background, { transform: [{ translateX: moveRightAnimation2 }], width: screenWidth, right: '.9px' }]}
+      source={require('../assets/Space Pixel/pngs/space-2.png')}
+    />
+  ), [moveRightAnimation2]);
+
+  // Obstacle Animation
+  const lastObstacleOnScreen = obstacleData[obstacleData.length - 1];
+  const obstacleAnimatedValue = useRef(new Animated.Value(0)).current;
+
+  let obstacleMoveLeftAnimation = useCallback(() => {
+    obstacleAnimatedValue.setValue(0);
+    Animated.timing(obstacleAnimatedValue, {
+      toValue: obstacleWidth,
+      duration: 5000,
+      useNativeDriver: true,
+    }).start(() => {
+      setObstaclesLeft(screenWidth);
+      setObstacleData(generateRandomBottoms(5, 1, screenHeight));
+    });
+  }, [obstacleAnimatedValue, screenWidth, screenHeight]);
+
+  useEffect(() => {
+    const animationInterval = setInterval(() => {
+      obstacleMoveLeftAnimation();
+    }, 5000); // Adjust the interval as needed
+
+    return () => {
+      clearInterval(animationInterval);
+    };
+  }, [obstacleMoveLeftAnimation]);
+
+  let getObstacleAnimation = (objectDistance) => {
+    let obstacleAnimation = obstacleAnimatedValue.interpolate({
+      inputRange: [0, obstacleWidth],
+      outputRange: [screenWidth + (objectDistance * 4), -screenWidth]
+    })
+
+    return obstacleAnimation;
+  }
+
   // Rocket falling
   let fallDownValue = useRef(new Animated.Value(rocketBottom)).current;
   let gravity = 15000;
-  
-  let gravityForRocket = Animated.timing(fallDownValue, {
-      toValue: 0,
-      duration: gravity,
-      easing: Easing.linear,
-      useNativeDriver: true,
-  })
+
+  let gravityForRocket = () => Animated.timing(fallDownValue, {
+    toValue: 0,
+    duration: gravity,
+    easing: Easing.linear,
+    useNativeDriver: true,
+  }).start();
 
   // UseEffect for first animation
-  useEffect(() => {
-    gravityForRocket.start(() => gravityForRocket);
-
-  }, [fallDownValue]);
+  const rocketRotateUp = animateValue.interpolate({
+    inputRange: [0, 90],
+    outputRange: [1, 50]
+  })
 
   /**
    * Calculating distance travelled
@@ -152,11 +212,7 @@ export default function GameScreen() {
   const [distance, setDistance] = useState(0);
   const rocketSpeed = 10; // Adjust the speed as needed
 
-  // Function to start the game
-  const startGame = () => {
-    setStartTime(Date.now());
-    fallingRocketTimer();
-  };
+
 
   // Function to calculate and update the distance
   const calculateDistance = () => {
@@ -176,32 +232,44 @@ export default function GameScreen() {
     return () => clearInterval(updateTimeInterval);
   }, [startTime]);
 
-
   // Fly function
   let flyDistance;
   const intervalRef = useRef(null);
-  const increaseBocketBottom = useRef(new Animated.Value(fallDownValue._value)).current
+  const increaseRocketBottom = useRef(new Animated.Value(fallDownValue._value)).current
 
   let boostForRocket = (boost) => {
+    // fallDownValue = useRef(new Animated.Value(rocketBottom)).current;
+    // fallDownValue = fallDownValue._value;
+
+    fallDownValue.stopAnimation(value => {
+      fallDownValue.setValue(value);
+      Animated.timing(fallDownValue, {
+        toValue: value + boost,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }).start(() => gravityForRocket())
+    })
+  }
+
+  let longBoostForRocket = (boost) => {
     fallDownValue.stopAnimation(value => {
       fallDownValue.setValue(value);
 
       Animated.timing(fallDownValue, {
-        toValue: value+boost,
-        duration: 200,
+        toValue: value + boost,
+        duration: 100,
         useNativeDriver: true,
-      }).start(() => gravityForRocket.start())
-  })
-
-  }
-
-  let longBoostForRocket = () => {
-    
+        easing: Easing.ease,
+      }).start(() => gravityForRocket())
+    });
+    // setScreenClicked(true);
   }
   const fly = () => {
     if (!isGameOver && fallDownValue._value <= screenHeight - 130) {
       boostForRocket(10);
-      setInvincible(false); 
+      // setScreenClicked(true);
+      // setInvincible(false);
     }
   }
 
@@ -209,13 +277,22 @@ export default function GameScreen() {
     if (!isGameOver && fallDownValue._value <= screenHeight - 130) {
 
       intervalRef.current = setInterval(() => {
-        boostForRocket(40);
-      }, 10);
+        longBoostForRocket(50);
+      }, 100)
     }
   }
 
+  // Function to start the game
+  const startGame = () => {
+    setStartTime(Date.now());
+    setDisplayStartButton('none');
+    setRocketSelectionButton('none');
+      gravityForRocket();
+  };
+
   const stopFlying = () => {
     clearInterval(intervalRef.current);
+    setScreenClicked(false);
   }
 
   //Check for collisions
@@ -278,41 +355,25 @@ export default function GameScreen() {
 
 
   return (
-    <>
+    <ThemeProvider theme={theme}>
+
       <Pressable
         style={{ overflow: 'hidden', justifyContent: 'center' }}
         onPressIn={fly} onLongPress={longFly} onPressOut={stopFlying}>
-        
-        <AnimatedImageComponent
-          style={[styles.background, {
-            transform: [
-              { translateX: moveRightAnimation }
-            ],
-          }]}
 
-          source={require('../assets/Space Pixel/pngs/space-2.png')} />
-
-        <AnimatedImageComponent
-          style={[styles.background,{
-            transform: [
-              { translateX: moveRightAnimation2 },
-            ],
-            width: screenWidth,
-            right: '.9px'
-          }]}
-          source={require('../assets/Space Pixel/pngs/space-2.png')}
-        />
+        {/* {AnimatedImage1}
+        {AnimatedImage2} */}
         <Text
           style={{
             position: 'absolute',
             top: '0',
             left: '0',
             zIndex: '3',
-            color: 'white',
           }}
         >Total Distance: {distance} meters</Text>
+        {/* Pause Icon */}
         <Pressable
-          title="Change Rocket"
+          title="Pause Icon"
           style={styles.icon}
           onPress={() => Alert.alert('Simple Button pressed')}
         >
@@ -327,12 +388,14 @@ export default function GameScreen() {
             source={require('../assets/Space Pixel/icons8-pause-100.png')} />
         </Pressable>
 
+        {/* Rocket and Obstacles Place */}
         <View style={styles.container}>
           <Rocket
             ref={rocketRef}
             rocketBottom={rocketBottom}
             rocketLeft={rocketLeft}
             fallDownValue={fallDownValue}
+            rocketRotateUp={rocketRotateUp}
           />
           {obstacleData.map((item, index) => (
             <Obstacles
@@ -340,18 +403,20 @@ export default function GameScreen() {
               ref={obstacleComponentRefs[index]}
               obstacleWidth={obstacleWidth}
               obstacleHeight={obstacleHeight}
-              obstaclesLeft={obstaclesLeft + (index * 13)}
+              obstaclesLeft={getObstacleAnimation(index * 2)}
               gap={gap}
               color={'blue'}
               randomBottom={item}
             />
           ))}
+
         </View>
 
-
+        {/* Start button */}
         <Pressable
           title="start"
           style={{
+            display: displayStartButton,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: '#9D1F1F',
@@ -363,48 +428,38 @@ export default function GameScreen() {
             width: '4rem',
             height: '4rem',
           }}
-          onPress={() => Alert.alert('Simple Button pressed')}
+          onPress={() => startGame()}
         >
           <Text>Start</Text>
         </Pressable>
 
-        <Pressable
-          title="Change Skin"
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#9D1F1F',
-            position: 'absolute',
-            zIndex: 4,
-            bottom: 0,
-            left: (screenWidth / 2) + 40,
-            marginBottom: '2rem',
-            width: '4rem',
-            height: '4rem',
-          }}
-          onPress={() => Alert.alert('Simple Button pressed')}
-        >
-          <Text>Change Skin</Text>
-        </Pressable>
-        <Pressable
-          title="Change Skin"
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#9D1F1F',
-            position: 'absolute',
-            zIndex: 4,
-            bottom: 0,
-            left: (screenWidth / 2) + 40,
-            marginBottom: '2rem',
-            width: '4rem',
-            height: '4rem',
-          }}
-          onPress={() => Alert.alert('Simple Button pressed')}
-        >
-          <Text>Change Skin</Text>
-        </Pressable>
+        {/* Change Skins Button */}
 
+        {
+          state.rocketSelectionIsActive ? <RocketSelection />
+            :
+            <Pressable
+              title="Change Skin"
+              style={{
+                display: rocketSelectionButton,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#9D1F1F',
+                position: 'absolute',
+                zIndex: 4,
+                bottom: 0,
+                left: (screenWidth / 2) + 40,
+                marginBottom: '2rem',
+                width: '6rem',
+                height: '4rem',
+              }}
+              onPress={toggleRocketSelectionScreen}
+            >
+              <Text>Change Skin</Text>
+            </Pressable>
+        }
+        <HighScores/>
+        {/* Help Button */}
         <Pressable
           title="question mark"
           style={{
@@ -424,50 +479,8 @@ export default function GameScreen() {
             }}
             source={require('../assets/Space Pixel/icons8-question-mark-100.png')} />
         </Pressable>
-        {
-          state.rocketSelectionIsActive ? <RocketSelection />
-            :
-
-            <Pressable
-              title="Change Skin"
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#9D1F1F',
-                position: 'absolute',
-                zIndex: 4,
-                bottom: 0,
-                left: (screenWidth / 2) + 40,
-                marginBottom: '2rem',
-                width: '4rem',
-                height: '4rem',
-              }}
-              onPress={() => Alert.alert('Simple Button pressed')}
-            >
-              <Text>Change Skin</Text>
-            </Pressable>
-        }
-        <Pressable
-          title="Change Skin"
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#9D1F1F',
-            position: 'absolute',
-            zIndex: 4,
-            bottom: 0,
-            left: (screenWidth / 2) + 40,
-            marginBottom: '2rem',
-            width: '4rem',
-            height: '4rem',
-          }}
-          onPress={toggleRocketSelectionScreen}
-        >
-          <Text>Change Skin</Text>
-        </Pressable>
-
       </Pressable>
-    </>
+      </ThemeProvider>
   );
 }
 

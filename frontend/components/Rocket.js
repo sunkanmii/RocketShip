@@ -1,26 +1,22 @@
-import React, {  forwardRef } from 'react';
+import React, {  forwardRef, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View, Dimensions, Image, Animated, Easing } from 'react-native';
 import { useSharedState } from '../store';
 
 const rocketHeight = 64
 const rocketWidth = 64
 
-const Rocket = forwardRef(({ fallDownValue, rocketBottom }, ref) => {
+const Rocket = forwardRef(({ fallDownValue, rocketBottom, rocketRotateUp }, ref) => {
   const [state, setState] = useSharedState();
-
 
   return (
     <Animated.View
       ref={ref}
-      style={{
-        display: 'flex',
-        height: 'fit-content',
-        width: rocketWidth,
-        position: 'absolute',
-        bottom: fallDownValue,
-        left: '1rem',
-        transition: 'all .2 ease',
-      }}>
+      style={[styles.rocketStyle,
+        {
+          bottom: fallDownValue,
+          
+        }
+      ]}>
       <Image
         style={styles.tinyLogo}
         source={
@@ -41,6 +37,14 @@ const styles = StyleSheet.create({
     width: 66,
     height: 58,
   },
+  rocketStyle: {
+    display: 'flex',
+    height: 'fit-content',
+    width: rocketWidth,
+    position: 'absolute',
+    left: '1rem',
+    transition: 'all .2 ease'
+  }
 });
 
 export default Rocket
